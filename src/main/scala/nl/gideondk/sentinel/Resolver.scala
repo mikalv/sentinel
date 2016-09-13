@@ -1,21 +1,19 @@
 package nl.gideondk.sentinel
 
-import akka.stream.scaladsl.{Flow, Source}
+import akka.stream.scaladsl.Source
 import akka.stream._
-import akka.stream.stage._
-import akka.util.ByteString
+import akka.stream.stage.{OutHandler, _}
 import nl.gideondk.sentinel.ConsumerAction._
 
-import scala.util.{Failure, Success, Try}
 
-
-class ResponseStage[Evt, Cmd](resolver: Processor[Evt]) extends GraphStage[FanOutShape2[Evt, Cmd, Response[Evt]]] {
+class ResolverStage[Evt, Cmd](resolver: Resolver[Evt]) extends GraphStage[FanOutShape2[Evt, Cmd, Response[Evt]]] {
 
   private val events = Inlet[Evt]("EventIn")
   private val responses = Outlet[Response[Evt]]("ResponseOut")
+
   private val signals = Outlet[Cmd]("SignalOut")
 
-  val shape = new FanOutShape2(events, responses, signals)
+  val shape = new FanOutShape2(events, signals, responses)
 
   override def createLogic(effectiveAttributes: Attributes) = new GraphStageLogic(shape) with InHandler with OutHandler {
     private var chunkSource: SubSourceOutlet[Evt] = _
@@ -34,8 +32,8 @@ class ResponseStage[Evt, Cmd](resolver: Processor[Evt]) extends GraphStage[FanOu
     }
 
     def onPush(): Unit = {
-
       val evt = grab(events)
+
       resolver.process(evt) match {
         case AcceptSignal ⇒ push(responses, SingularResponse(evt))
 
@@ -90,10 +88,16 @@ class ResponseStage[Evt, Cmd](resolver: Processor[Evt]) extends GraphStage[FanOu
         failStage(reason)
       }
     }
+
+    setHandler(signals, new OutHandler{
+      def onPull() = ???
+    })
+
+    setInitialHandlers()
   }
 }
 
 
-trait Processor[In] {
+trait Resolver[In] {
   def process: PartialFunction[In, Action]
 }

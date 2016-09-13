@@ -1,9 +1,8 @@
 package nl.gideondk.sentinel
 
-import org.scalatest.{ Suite, BeforeAndAfterAll, WordSpec }
+import org.scalatest.{Suite, BeforeAndAfterAll, WordSpec}
 import org.scalatest.matchers.ShouldMatchers
 
-import akka.io.SymmetricPipelineStage
 import akka.util.ByteString
 
 import akka.actor._
@@ -11,13 +10,11 @@ import akka.testkit._
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import protocols._
-
 abstract class TestKitSpec extends TestKit(ActorSystem(java.util.UUID.randomUUID.toString))
-    with Suite
-    with ShouldMatchers
-    with BeforeAndAfterAll
-    with ImplicitSender {
+  with Suite
+  with ShouldMatchers
+  with BeforeAndAfterAll
+  with ImplicitSender {
   override def afterAll = {
     system.shutdown()
   }
@@ -54,7 +51,7 @@ object LargerPayloadTestHelper {
     val stringB = new StringBuilder(size)
     val paddingString = "abcdefghijklmnopqrs"
 
-    while (stringB.length() + paddingString.length() < size) stringB.append(paddingString)
+    while ((stringB.length + paddingString.length) < size) stringB.append(paddingString)
 
     stringB.toString()
   }
