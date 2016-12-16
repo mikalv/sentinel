@@ -1,8 +1,8 @@
 package nl.gideondk.sentinel
 
-import akka.actor.{Actor, Props}
+import akka.actor.{ Actor, Props }
 import akka.stream.BidiShape
-import akka.stream.scaladsl.{BidiFlow, Flow, Sink, Source}
+import akka.stream.scaladsl.{ BidiFlow, Flow, Sink, Source }
 import akka.util.ByteString
 import akka.pattern.ask
 
