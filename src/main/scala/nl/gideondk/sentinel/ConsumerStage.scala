@@ -44,7 +44,7 @@ class ConsumerStage[Evt, Cmd](resolver: Resolver[Evt]) extends GraphStage[FanOut
         chunkSource.complete()
         chunkSource = null
 
-        if (isAvailable(signalOut)) pull(eventIn)
+        if (isAvailable(signalOut) && !hasBeenPulled(eventIn)) pull(eventIn)
         setInitialHandlers()
       }
 
@@ -66,7 +66,8 @@ class ConsumerStage[Evt, Cmd](resolver: Resolver[Evt]) extends GraphStage[FanOut
       }
 
       override def onPull(): Unit = {
-        pull(eventIn)
+        // TODO: Recheck internal flow; checking should be obsolete
+        if (!hasBeenPulled(eventIn)) pull(eventIn)
       }
 
       override def onUpstreamFinish(): Unit = {

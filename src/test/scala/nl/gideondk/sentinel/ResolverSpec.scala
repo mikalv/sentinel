@@ -11,12 +11,8 @@ import protocol.SimpleMessage._
 import scala.concurrent._
 import duration._
 
-object ResolverSpec {
-}
-
-class ResolverStageSpec extends AkkaSpec {
-
-  "The Resolve stage" should {
+class ConsumerStageSpec extends AkkaSpec {
+  "The ConsumerStage" should {
      "handle incoming events" in {
        implicit val materializer = ActorMaterializer()
 
@@ -171,6 +167,36 @@ class ResolverStageSpec extends AkkaSpec {
       })
 
       Await.result(g.run(), 300.millis) should be(Seq(SimpleStreamChunk("A"), SimpleStreamChunk("B"), SimpleStreamChunk("C")))
+    }
+
+    "correctly output multiple stream responses" in {
+      implicit val materializer = ActorMaterializer()
+
+      val resultSink = Sink.seq[SimpleMessageFormat]
+      val eventFlow = Flow[Event[SimpleMessageFormat]].flatMapConcat {
+        case x: StreamEvent[SimpleMessageFormat] => x.chunks
+      }
+
+      val ignoreSink = Sink.ignore
+
+      val stage = new ConsumerStage[SimpleMessageFormat, SimpleMessageFormat](SimpleClientHandler)
+      val items = List.fill(10)(List(SimpleStreamChunk("A"), SimpleStreamChunk("B"), SimpleStreamChunk("C"), SimpleStreamChunk(""))).flatten
+      val chunkSource = Source(items)
+
+      val g = RunnableGraph.fromGraph(GraphDSL.create(resultSink) { implicit b ⇒
+        sink ⇒
+          import GraphDSL.Implicits._
+
+          val s = b.add(stage)
+
+          chunkSource ~> s.in
+          s.out1 ~> eventFlow ~> sink.in
+          s.out0 ~> ignoreSink
+
+          ClosedShape
+      })
+
+      Await.result(g.run(), 300.millis) should be(items.filter(_.payload.length > 0))
     }
   }
 }
